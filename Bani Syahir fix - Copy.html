@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silsilah Keluarga Mbah Syahir & Mbah Temu</title>
+  <style>
+    :root {
+      --primary-color: #4CAF50;
+      --bg-color: #f4f7f6;
+      --card-bg: #ffffff;
+      --text-color: #333;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    input[type="text"], select, textarea {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    /* Tree Styles */
+    .tree ul {
+      padding-top: 20px; 
+      position: relative;
+      transition: all 0.5s;
+    }
+    .tree li {
+      display: inline-block;
+      text-align: center;
+      list-style-type: none;
+      position: relative;
+      padding: 20px 5px 0 5px;
+      transition: all 0.5s;
+    }
+    .tree li::before, .tree li::after {
+      content: '';
+      position: absolute; top: 0; right: 50%;
+      border-top: 2px solid #ccc;
+      width: 50%; height: 20px;
+    }
+    .tree li::after {
+      right: auto; left: 50%;
+      border-left: 2px solid #ccc;
+    }
+    .tree li:only-child::after, .tree li:only-child::before {
+      display: none;
+    }
+    .tree li:only-child { padding-top: 0; }
+    .tree li:first-child::before, .tree li:last-child::after {
+      border: 0 none;
+    }
+    .tree li:last-child::before {
+      border-right: 2px solid #ccc;
+      border-radius: 0 5px 0 0;
+    }
+    .tree li:first-child::after {
+      border-radius: 5px 0 0 0;
+    }
+    .tree ul ul::before {
+      content: '';
+      position: absolute; top: 0; left: 50%;
+      border-left: 2px solid #ccc;
+      width: 0; height: 20px;
+    }
+    
+    .member-card {
+      background-color: var(--card-bg);
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      display: inline-block;
+      min-width: 120px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      position: relative;
+    }
+    .member-card img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 5px;
+      background-color: #ddd;
+    }
+    .member-card.almarhum {
+      background-color: #e0e0e0;
+      border-color: #999;
+    }
+    .member-name { font-weight: bold; font-size: 14px; }
+    .member-status { font-size: 12px; color: #666; }
+
+    /* Modal Styles */
+    .modal {
+      display: none; 
+      position: fixed; z-index: 100; left: 0; top: 0;
+      width: 100%; height: 100%; overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+    }
+    .close {
+      color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
+    }
+    .close:hover { color: black; }
+    .form-group {
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group label { margin-bottom: 5px; font-weight: bold; font-size: 13px;}
+    
+    /* Loader */
+    #loader { text-align: center; font-weight: bold; color: var(--primary-color); display: none; margin: 20px;}
+  </style>
+</head>
+<body>
+
+  <h1>Silsilah Keluarga Mbah Syahir & Mbah Temu</h1>
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Cari nama..." onkeyup="filterTree()">
+    <button onclick="setFilter('semua')">Semua</button>
+    <button onclick="setFilter('hidup')">Masih Hidup</button>
+    <button onclick="setFilter('almarhum')">Almarhum/ah</button>
+  </div>
+
+  <div id="loader">Memuat data dari Google Sheets...</div>
+
+  <div class="tree" id="treeContainer">
+    <ul id="treeRoot">
+      <!-- Silsilah akan dirender di sini oleh JavaScript -->
+    </ul>
+  </div>
+
+  <!-- Modal Edit Profil -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeEditModal()">&times;</span>
+      <h2 style="margin-top:0;">Edit Profil</h2>
+      
+      <input type="hidden" id="editId">
+      <input type="hidden" id="editAnakDari">
+      
+      <div class="form-group">
+        <label>Foto Profil (Maks 1MB, akan dikompres)</label>
+        <input type="file" id="editFotoFile" accept="image/*" onchange="compressAndPreviewImage()">
+        <input type="hidden" id="editFotoBase64">
+        <img id="previewFoto" src="" alt="Preview" style="width:80px; height:80px; border-radius:50%; margin-top:10px; display:none; object-fit:cover;">
+      </div>
+
+      <div class="form-group">
+        <label>Nama Lengkap</label>
+        <input type="text" id="editNama" required>
+      </div>
+
+      <div class="form-group">
+        <label>Tanggal Lahir</label>
+        <input type="date" id="editTanggalLahir">
+      </div>
+
+      <div class="form-group">
+        <label>Generasi</label>
+        <input type="number" id="editGenerasi">
+      </div>
+
+      <div class="form-group">
+        <label>Status Keluarga</label>
+        <select id="editStatus">
+          <option value="Suami">Suami</option>
+          <option value="Istri">Istri</option>
+          <option value="Anak">Anak</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="editAlmarhum"> Sudah Meninggal (Almarhum/ah)
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>Keterangan Tambahan</label>
+        <textarea id="editKeterangan" rows="3"></textarea>
+      </div>
+
+      <button onclick="saveProfile()" style="width:100%;">Simpan Perubahan</button>
+    </div>
+  </div>
+
+  <script>
+    // ----------------------------------------------------
+    // PENGATURAN KONEKSI DATABASE
+    // ----------------------------------------------------
+    // URL Web App Google Apps Script Anda.
+    // Jika masih menggunakan ID Drive, ubah menjadi URL Web App yang valid.
+    const SCRIPT_URL = "1GaqS1CDY1xLhIOjWIs0PsekyoWe0DM_q"; 
+    
+    // Key untuk backup offline di perangkat
+    const STORAGE_KEY = "SilsilahBaniSyahir_Data";
+
+    // Struktur Awal jika database masih kosong
+    const INITIAL_TREE_STRUCTURE = {
+      id: "root_01",
+      nama: "Mbah Syahir",
+      tanggalLahir: "",
+      generasi: 1,
+      anakDari: null,
+      status: "Suami",
+      almarhum: true,
+      keterangan: "Generasi Pertama",
+      foto: "",
+      pasangan: {
+        id: "root_02",
+        nama: "Mbah Temu",
+        status: "Istri",
+        almarhum: true,
+        foto: ""
+      },
+      anak: [] // Tambahkan struktur anak jika diperlukan untuk inisialisasi
+    };
+
+    let familyDb = {};
+    let currentFilter = 'semua';
+
+    // ----------------------------------------------------
+    // FUNGSI INISIALISASI & FETCH DATA
+    // ----------------------------------------------------
+    window.onload = () => {
+      loadData();
+    };
+
+    function populateDbFromTree(node, parentId = null) {
+      if (!node) return;
+      familyDb[node.id] = {
+        id: node.id,
+        nama: node.nama || "",
+        tanggalLahir: node.tanggalLahir || "",
+        generasi: node.generasi || 1,
+        anakDari: parentId,
+        status: node.status || "Anak",
+        almarhum: node.almarhum || false,
+        keterangan: node.keterangan || "",
+        foto: node.foto || ""
+      };
+
+      if (node.pasangan) {
+        familyDb[node.pasangan.id] = {
+          id: node.pasangan.id,
+          nama: node.pasangan.nama || "",
+          tanggalLahir: node.pasangan.tanggalLahir || "",
+          generasi: node.generasi || 1,
+          anakDari: parentId, // Pasangan diasosiasikan di level yang sama
+          status: node.pasangan.status || "Istri",
+          almarhum: node.pasangan.almarhum || false,
+          keterangan: node.pasangan.keterangan || "",
+          foto: node.pasangan.foto || ""
+        };
+      }
+
+      if (node.anak && node.anak.length > 0) {
+        node.anak.forEach(child => populateDbFromTree(child, node.id));
+      }
+    }
+
+    async function loadData() {
+      const loader = document.getElementById("loader");
+      loader.style.display = "block";
+      
+      try {
+        // Coba ambil dari Google Sheets via Fetch API
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+        
+        if (Object.keys(data).length === 0) {
+          // Jika kosong, pakai struktur bawaan
+          populateDbFromTree(INITIAL_TREE_STRUCTURE);
+          await saveDataToStorage();
+        } else {
+          // Konversi tipe data boolean
+          for (let key in data) {
+            data[key].almarhum = (data[key].almarhum === true || data[key].almarhum === "true");
+          }
+          familyDb = data;
+        }
+        renderFullTree();
+      } catch(e) {
+        console.error("Gagal membaca Google Sheets, menggunakan data lokal.", e);
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          familyDb = JSON.parse(stored);
+        } else {
+          populateDbFromTree(INITIAL_TREE_STRUCTURE);
+        }
+        renderFullTree();
+      } finally {
+        loader.style.display = "none";
+      }
+    }
+
+    async function saveDataToStorage() {
+      // Backup lokal
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(familyDb)); } catch (e) {}
+
+      // Kirim ke Google Sheets
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(familyDb)
+        });
+        const result = await response.json();
+        if(result.status !== "sukses") {
+          console.warn("Respon server bukan sukses:", result);
+        }
+      } catch (e) {
+        console.error("Gagal mengirim data ke internet", e);
+      }
+    }
+
+    // ----------------------------------------------------
+    // FUNGSI RENDER TAMPILAN
+    // ----------------------------------------------------
+    function buildTreeObject() {
+      // Mengubah format flat object (familyDb) kembali menjadi struktur bersarang (tree)
+      let tree = [];
+      let pasangans = [];
+      
+      // Pisahkan data utama dan pasangan
+      Object.values(familyDb).forEach(member => {
+        if(member.status === "Suami" || member.status === "Istri") {
+          // Logika sederhana: Asumsikan root memiliki status Suami/Istri.
+          // Untuk keluarga cabang, perlu logika pencocokan yang lebih detail.
+          // Disini kita gabungkan root_01 dan root_02
+        }
+      });
+
+      // Karena keterbatasan logika relasional tanpa database SQL yang kompleks, 
+      // untuk pemula kita gunakan logika referensi anakDari.
+      let nodeMap = {};
+      Object.values(familyDb).forEach(member => {
+        nodeMap[member.id] = { ...member, anak: [], pasangan: null };
+      });
+
+      let rootNodes = [];
+      Object.values(nodeMap).forEach(node => {
+        if (node.status === "Istri" || (node.status === "Suami" && node.id !== "root_01")) {
+          // Cari pasangannya (asumsi pasangan terikat pada ID yang sama secara hirarki)
+          // Dalam skenario ini, kita menempatkan manual pasangan root.
+          if(node.id === "root_02" && nodeMap["root_01"]) {
+            nodeMap["root_01"].pasangan = node;
+          }
+        } else {
+          if (node.anakDari && nodeMap[node.anakDari]) {
+             nodeMap[node.anakDari].anak.push(node);
+          } else {
+             if(node.id === "root_01") rootNodes.push(node);
+          }
+        }
+      });
+      return rootNodes[0]; 
+    }
+
+    function renderFullTree() {
+      const rootNode = buildTreeObject();
+      const treeRootElement = document.getElementById("treeRoot");
+      treeRootElement.innerHTML = "";
+      if (rootNode) {
+        treeRootElement.appendChild(createNodeHTML(rootNode));
+      }
+      filterTree(); // Terapkan pencarian dan filter saat render
+    }
+
+    function createNodeHTML(node) {
+      const li = document.createElement('li');
+      
+      let html = `<div class="member-card ${node.almarhum ? 'almarhum' : ''}" onclick="openEditModal('${node.id}')" data-nama="${node.nama.toLowerCase()}">`;
+      html += `<img src="${node.foto || 'https://via.placeholder.com/60?text=No+Foto'}" alt="Foto">`;
+      html += `<div class="member-name">${node.nama}</div>`;
+      html += `<div class="member-status">${node.status}</div>`;
+      html += `</div>`;
+
+      if (node.pasangan) {
+        html += `<div class="member-card ${node.pasangan.almarhum ? 'almarhum' : ''}" onclick="openEditModal('${node.pasangan.id}')" style="margin-left:10px;" data-nama="${node.pasangan.nama.toLowerCase()}">`;
+        html += `<img src="${node.pasangan.foto || 'https://via.placeholder.com/60?text=No+Foto'}" alt="Foto">`;
+        html += `<div class="member-name">${node.pasangan.nama}</div>`;
+        html += `<div class="member-status">${node.pasangan.status}</div>`;
+        html += `</div>`;
+      }
+
+      if (node.anak && node.anak.length > 0) {
+        html += `<ul>`;
+        // Penutupan ul tidak bisa dengan string langsung jika kita merekursif DOM element
+        li.innerHTML = html;
+        const ul = document.createElement('ul');
+        node.anak.forEach(child => {
+          ul.appendChild(createNodeHTML(child));
+        });
+        li.appendChild(ul);
+      } else {
+        li.innerHTML = html;
+      }
+      return li;
+    }
+
+    // ----------------------------------------------------
+    // FUNGSI PENCARIAN & FILTER
+    // ----------------------------------------------------
+    function setFilter(type) {
+      currentFilter = type;
+      filterTree();
+    }
+
+    function filterTree() {
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+      const cards = document.querySelectorAll('.member-card');
+      
+      cards.forEach(card => {
+        const nama = card.getAttribute('data-nama');
+        const isAlmarhum = card.classList.contains('almarhum');
+        
+        let matchKeyword = nama.includes(keyword);
+        let matchFilter = true;
+        
+        if (currentFilter === 'hidup' && isAlmarhum) matchFilter = false;
+        if (currentFilter === 'almarhum' && !isAlmarhum) matchFilter = false;
+        
+        if (matchKeyword && matchFilter) {
+          card.style.display = "inline-block";
+        } else {
+          card.style.display = "none";
+        }
+      });
+    }
+
+    // ----------------------------------------------------
+    // FUNGSI MODAL & KOMPRESI GAMBAR (CANVAS)
+    // ----------------------------------------------------
+    function openEditModal(id) {
+      const member = familyDb[id];
+      if (!member) return;
+
+      document.getElementById('editId').value = member.id;
+      document.getElementById('editNama').value = member.nama;
+      document.getElementById('editTanggalLahir').value = member.tanggalLahir;
+      document.getElementById('editGenerasi').value = member.generasi;
+      document.getElementById('editStatus').value = member.status;
+      document.getElementById('editAlmarhum').checked = member.almarhum;
+      document.getElementById('editKeterangan').value = member.keterangan;
+      document.getElementById('editAnakDari').value = member.anakDari;
+      
+      document.getElementById('editFotoFile').value = ""; // Reset input file
+      
+      const preview = document.getElementById('previewFoto');
+      if(member.foto) {
+        preview.src = member.foto;
+        preview.style.display = "block";
+        document.getElementById('editFotoBase64').value = member.foto;
+      } else {
+        preview.style.display = "none";
+        document.getElementById('editFotoBase64').value = "";
+      }
+
+      document.getElementById('editModal').style.display = "block";
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = "none";
+    }
+
+    // Kompresi foto jadi Base64 agar tidak berat saat disimpan di Sheets
+    function compressAndPreviewImage() {
+      const file = document.getElementById('editFotoFile').files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300; // Resolusi maksimal
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Kompresi ke format JPEG (0.7 quality)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          
+          document.getElementById('previewFoto').src = dataUrl;
+          document.getElementById('previewFoto').style.display = "block";
+          document.getElementById('editFotoBase64').value = dataUrl;
+        }
+        img.src = event.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+
+    async function saveProfile() {
+      const id = document.getElementById('editId').value;
+      
+      familyDb[id].nama = document.getElementById('editNama').value;
+      familyDb[id].tanggalLahir = document.getElementById('editTanggalLahir').value;
+      familyDb[id].generasi = document.getElementById('editGenerasi').value;
+      familyDb[id].status = document.getElementById('editStatus').value;
+      familyDb[id].almarhum = document.getElementById('editAlmarhum').checked;
+      familyDb[id].keterangan = document.getElementById('editKeterangan').value;
+      familyDb[id].foto = document.getElementById('editFotoBase64').value;
+
+      closeEditModal();
+      
+      // Render ulang layar lalu simpan
+      renderFullTree();
+      
+      // Tampilkan indikator menyimpan
+      const loader = document.getElementById("loader");
+      loader.innerHTML = "Menyimpan perubahan ke sistem...";
+      loader.style.display = "block";
+      
+      await saveDataToStorage();
+      
+      loader.style.display = "none";
+      loader.innerHTML = "Memuat data dari Google Sheets...";
+    }
+  </script>
+</body>
+</html>

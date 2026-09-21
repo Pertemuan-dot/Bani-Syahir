@@ -1,564 +1,429 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Silsilah Keluarga Mbah Syahir & Mbah Temu</title>
-  <style>
-    :root {
-      --primary-color: #4CAF50;
-      --bg-color: #f4f7f6;
-      --card-bg: #ffffff;
-      --text-color: #333;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: var(--primary-color);
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    input[type="text"], select, textarea {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    button {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silsilah Keluarga Mbah Syahir & Mbah Temu</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Panzoom Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    /* Tree Styles */
-    .tree ul {
-      padding-top: 20px; 
-      position: relative;
-      transition: all 0.5s;
-    }
-    .tree li {
-      display: inline-block;
-      text-align: center;
-      list-style-type: none;
-      position: relative;
-      padding: 20px 5px 0 5px;
-      transition: all 0.5s;
-    }
-    .tree li::before, .tree li::after {
-      content: '';
-      position: absolute; top: 0; right: 50%;
-      border-top: 2px solid #ccc;
-      width: 50%; height: 20px;
-    }
-    .tree li::after {
-      right: auto; left: 50%;
-      border-left: 2px solid #ccc;
-    }
-    .tree li:only-child::after, .tree li:only-child::before {
-      display: none;
-    }
-    .tree li:only-child { padding-top: 0; }
-    .tree li:first-child::before, .tree li:last-child::after {
-      border: 0 none;
-    }
-    .tree li:last-child::before {
-      border-right: 2px solid #ccc;
-      border-radius: 0 5px 0 0;
-    }
-    .tree li:first-child::after {
-      border-radius: 5px 0 0 0;
-    }
-    .tree ul ul::before {
-      content: '';
-      position: absolute; top: 0; left: 50%;
-      border-left: 2px solid #ccc;
-      width: 0; height: 20px;
-    }
-    
-    .member-card {
-      background-color: var(--card-bg);
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 8px;
-      display: inline-block;
-      min-width: 120px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      cursor: pointer;
-      position: relative;
-    }
-    .member-card img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-bottom: 5px;
-      background-color: #ddd;
-    }
-    .member-card.almarhum {
-      background-color: #e0e0e0;
-      border-color: #999;
-    }
-    .member-name { font-weight: bold; font-size: 14px; }
-    .member-status { font-size: 12px; color: #666; }
+    <style>
+        :root { --primary: #2c3e50; --bg: #f8f9fa; }
+        body { background-color: var(--bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Navbar & Controls */
+        .top-bar { background: white; padding: 10px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 100; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .controls btn { margin: 0 5px; }
 
-    /* Modal Styles */
-    .modal {
-      display: none; 
-      position: fixed; z-index: 100; left: 0; top: 0;
-      width: 100%; height: 100%; overflow: auto;
-      background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 90%;
-      max-width: 400px;
-      border-radius: 8px;
-    }
-    .close {
-      color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
-    }
-    .close:hover { color: black; }
-    .form-group {
-      margin-bottom: 12px;
-      display: flex;
-      flex-direction: column;
-    }
-    .form-group label { margin-bottom: 5px; font-weight: bold; font-size: 13px;}
-    
-    /* Loader */
-    #loader { text-align: center; font-weight: bold; color: var(--primary-color); display: none; margin: 20px;}
-  </style>
+        /* Tree Area */
+        #tree-container { flex: 1; width: 100%; overflow: hidden; cursor: grab; position: relative; }
+        #tree-container:active { cursor: grabbing; }
+        #tree-wrapper { transform-origin: top center; display: inline-block; padding: 50px; min-width: 100%; text-align: center; }
+
+        /* CSS Family Tree Logic */
+        .tree ul { padding-top: 20px; position: relative; transition: all 0.5s; display: flex; justify-content: center; }
+        .tree li { float: left; text-align: center; list-style-type: none; position: relative; padding: 20px 5px 0 5px; transition: all 0.5s; }
+        
+        /* Connectors */
+        .tree li::before, .tree li::after { content: ''; position: absolute; top: 0; right: 50%; border-top: 2px solid #ccc; width: 50%; height: 20px; }
+        .tree li::after { right: auto; left: 50%; border-left: 2px solid #ccc; }
+        .tree li:only-child::after, .tree li:only-child::before { display: none; }
+        .tree li:only-child { padding-top: 0; }
+        .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+        .tree li:last-child::before { border-right: 2px solid #ccc; border-radius: 0 5px 0 0; }
+        .tree li:first-child::after { border-radius: 5px 0 0 0; }
+        .tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid #ccc; width: 0; height: 20px; }
+
+        /* Node Styling */
+        .node-container { display: inline-flex; align-items: center; justify-content: center; gap: 10px; position: relative; }
+        .person-card { background: white; border: 2px solid #2c3e50; border-radius: 10px; padding: 10px; width: 140px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: 0.3s; position: relative; z-index: 10; }
+        .person-card:hover { transform: translateY(-5px); box-shadow: 0 6px 12px rgba(0,0,0,0.2); border-color: #3498db; }
+        .person-card img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #ecf0f1; margin-bottom: 5px; }
+        .person-card h6 { font-size: 13px; font-weight: bold; margin: 0; color: #333; word-wrap: break-word; }
+        .person-card p { font-size: 11px; margin: 0; color: #7f8c8d; }
+        
+        /* Spouse styling */
+        .spouse-line { width: 20px; height: 2px; background: #e74c3c; z-index: 1; }
+        .almarhum { opacity: 0.7; filter: grayscale(50%); border-color: #7f8c8d; }
+        .almarhum::after { content: '✝'; position: absolute; top: 5px; right: 5px; font-size: 14px; color: #7f8c8d; }
+
+        /* Loader */
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    </style>
 </head>
 <body>
 
-  <h1>Silsilah Keluarga Mbah Syahir & Mbah Temu</h1>
-
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="Cari nama..." onkeyup="filterTree()">
-    <button onclick="setFilter('semua')">Semua</button>
-    <button onclick="setFilter('hidup')">Masih Hidup</button>
-    <button onclick="setFilter('almarhum')">Almarhum/ah</button>
-  </div>
-
-  <div id="loader">Memuat data dari Google Sheets...</div>
-
-  <div class="tree" id="treeContainer">
-    <ul id="treeRoot">
-      <!-- Silsilah akan dirender di sini oleh JavaScript -->
-    </ul>
-  </div>
-
-  <!-- Modal Edit Profil -->
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeEditModal()">&times;</span>
-      <h2 style="margin-top:0;">Edit Profil</h2>
-      
-      <input type="hidden" id="editId">
-      <input type="hidden" id="editAnakDari">
-      
-      <div class="form-group">
-        <label>Foto Profil (Maks 1MB, akan dikompres)</label>
-        <input type="file" id="editFotoFile" accept="image/*" onchange="compressAndPreviewImage()">
-        <input type="hidden" id="editFotoBase64">
-        <img id="previewFoto" src="" alt="Preview" style="width:80px; height:80px; border-radius:50%; margin-top:10px; display:none; object-fit:cover;">
-      </div>
-
-      <div class="form-group">
-        <label>Nama Lengkap</label>
-        <input type="text" id="editNama" required>
-      </div>
-
-      <div class="form-group">
-        <label>Tanggal Lahir</label>
-        <input type="date" id="editTanggalLahir">
-      </div>
-
-      <div class="form-group">
-        <label>Generasi</label>
-        <input type="number" id="editGenerasi">
-      </div>
-
-      <div class="form-group">
-        <label>Status Keluarga</label>
-        <select id="editStatus">
-          <option value="Suami">Suami</option>
-          <option value="Istri">Istri</option>
-          <option value="Anak">Anak</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="editAlmarhum"> Sudah Meninggal (Almarhum/ah)
-        </label>
-      </div>
-
-      <div class="form-group">
-        <label>Keterangan Tambahan</label>
-        <textarea id="editKeterangan" rows="3"></textarea>
-      </div>
-
-      <button onclick="saveProfile()" style="width:100%;">Simpan Perubahan</button>
+    <div id="loader">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h4 class="mt-3">Mengambil Data Silsilah...</h4>
+        <p class="text-muted">Mohon tunggu, jangan tutup halaman ini.</p>
     </div>
-  </div>
 
-  <script>
-    // ----------------------------------------------------
-    // PENGATURAN KONEKSI DATABASE
-    // ----------------------------------------------------
-    // URL Web App Google Apps Script Anda.
-    // Jika masih menggunakan ID Drive, ubah menjadi URL Web App yang valid.
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCG-N8ITxUghs4qdXRhiKmivVn9x5hSNWTc7f4ORciYsSZGunvmMkbEUH0CFvJJIrQ/exec"; 
-    
-    // Key untuk backup offline di perangkat
-    const STORAGE_KEY = "SilsilahBaniSyahir_Data";
+    <div class="top-bar">
+        <h4 class="m-0"><i class="fas fa-tree text-success"></i> Silsilah Keluarga</h4>
+        <div class="d-flex gap-2">
+            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Cari nama..." onkeyup="searchTree()">
+            <button class="btn btn-sm btn-primary" onclick="openModal('add')"><i class="fas fa-plus"></i> Tambah</button>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-secondary" onclick="zoomIn()"><i class="fas fa-search-plus"></i></button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="zoomOut()"><i class="fas fa-search-minus"></i></button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="resetZoom()"><i class="fas fa-compress"></i></button>
+            </div>
+        </div>
+    </div>
 
-    // Struktur Awal jika database masih kosong
-    const INITIAL_TREE_STRUCTURE = {
-      id: "root_01",
-      nama: "Mbah Syahir",
-      tanggalLahir: "",
-      generasi: 1,
-      anakDari: null,
-      status: "Suami",
-      almarhum: true,
-      keterangan: "Generasi Pertama",
-      foto: "",
-      pasangan: {
-        id: "root_02",
-        nama: "Mbah Temu",
-        status: "Istri",
-        almarhum: true,
-        foto: ""
-      },
-      anak: [] // Tambahkan struktur anak jika diperlukan untuk inisialisasi
-    };
+    <div id="tree-container">
+        <div id="tree-wrapper" class="tree">
+            <!-- Silsilah akan dirender di sini via JS -->
+        </div>
+    </div>
 
-    let familyDb = {};
-    let currentFilter = 'semua';
+    <!-- Modal Profil & Form -->
+    <div class="modal fade" id="mainModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">Profil Anggota</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Konten dinamis (View atau Form) -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // ----------------------------------------------------
-    // FUNGSI INISIALISASI & FETCH DATA
-    // ----------------------------------------------------
-    window.onload = () => {
-      loadData();
-    };
-
-    function populateDbFromTree(node, parentId = null) {
-      if (!node) return;
-      familyDb[node.id] = {
-        id: node.id,
-        nama: node.nama || "",
-        tanggalLahir: node.tanggalLahir || "",
-        generasi: node.generasi || 1,
-        anakDari: parentId,
-        status: node.status || "Anak",
-        almarhum: node.almarhum || false,
-        keterangan: node.keterangan || "",
-        foto: node.foto || ""
-      };
-
-      if (node.pasangan) {
-        familyDb[node.pasangan.id] = {
-          id: node.pasangan.id,
-          nama: node.pasangan.nama || "",
-          tanggalLahir: node.pasangan.tanggalLahir || "",
-          generasi: node.generasi || 1,
-          anakDari: parentId, // Pasangan diasosiasikan di level yang sama
-          status: node.pasangan.status || "Istri",
-          almarhum: node.pasangan.almarhum || false,
-          keterangan: node.pasangan.keterangan || "",
-          foto: node.pasangan.foto || ""
-        };
-      }
-
-      if (node.anak && node.anak.length > 0) {
-        node.anak.forEach(child => populateDbFromTree(child, node.id));
-      }
-    }
-
-    async function loadData() {
-      const loader = document.getElementById("loader");
-      loader.style.display = "block";
-      
-      try {
-        // Coba ambil dari Google Sheets via Fetch API
-        const response = await fetch(SCRIPT_URL);
-        const data = await response.json();
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ==========================================
+        // 1. MASUKKAN URL APPS SCRIPT ANDA DI SINI
+        // ==========================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZ9LgKEo8tqtSDqRDr_hvnS-r7uQNJzt3MOYloh_jtaBt7n5nkNcs8bblUA6Po0ttd/exec";
         
-        if (Object.keys(data).length === 0) {
-          // Jika kosong, pakai struktur bawaan
-          populateDbFromTree(INITIAL_TREE_STRUCTURE);
-          await saveDataToStorage();
-        } else {
-          // Konversi tipe data boolean
-          for (let key in data) {
-            data[key].almarhum = (data[key].almarhum === true || data[key].almarhum === "true");
-          }
-          familyDb = data;
-        }
-        renderFullTree();
-      } catch(e) {
-        console.error("Gagal membaca Google Sheets, menggunakan data lokal.", e);
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          familyDb = JSON.parse(stored);
-        } else {
-          populateDbFromTree(INITIAL_TREE_STRUCTURE);
-        }
-        renderFullTree();
-      } finally {
-        loader.style.display = "none";
-      }
-    }
+        // State Management
+        let familyData = [];
+        let panzoomInstance;
+        const mainModal = new bootstrap.Modal(document.getElementById('mainModal'));
 
-    async function saveDataToStorage() {
-      // Backup lokal
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(familyDb)); } catch (e) {}
-
-      // Kirim ke Google Sheets
-      try {
-        const response = await fetch(SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify(familyDb)
+        // ==========================================
+        // INISIALISASI & FETCH DATA
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            initPanzoom();
+            fetchData();
         });
-        const result = await response.json();
-        if(result.status !== "sukses") {
-          console.warn("Respon server bukan sukses:", result);
+
+        function initPanzoom() {
+            const elem = document.getElementById('tree-wrapper');
+            panzoomInstance = Panzoom(elem, { maxScale: 3, minScale: 0.3, step: 0.2 });
+            elem.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
         }
-      } catch (e) {
-        console.error("Gagal mengirim data ke internet", e);
-      }
-    }
 
-    // ----------------------------------------------------
-    // FUNGSI RENDER TAMPILAN
-    // ----------------------------------------------------
-    function buildTreeObject() {
-      // Mengubah format flat object (familyDb) kembali menjadi struktur bersarang (tree)
-      let tree = [];
-      let pasangans = [];
-      
-      // Pisahkan data utama dan pasangan
-      Object.values(familyDb).forEach(member => {
-        if(member.status === "Suami" || member.status === "Istri") {
-          // Logika sederhana: Asumsikan root memiliki status Suami/Istri.
-          // Untuk keluarga cabang, perlu logika pencocokan yang lebih detail.
-          // Disini kita gabungkan root_01 dan root_02
+        function zoomIn() { panzoomInstance.zoomIn(); }
+        function zoomOut() { panzoomInstance.zoomOut(); }
+        function resetZoom() { panzoomInstance.reset(); }
+
+        async function fetchData() {
+            document.getElementById("loader").style.display = "flex";
+            try {
+                const response = await fetch(SCRIPT_URL + "?action=get");
+                const res = await response.json();
+                if (res.status === "success") {
+                    familyData = res.data;
+                    renderTree();
+                } else {
+                    Swal.fire('Error', 'Gagal mengambil data dari Spreadsheet', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Gagal terhubung ke server Google. Pastikan URL Apps Script benar.', 'error');
+            }
+            document.getElementById("loader").style.display = "none";
         }
-      });
 
-      // Karena keterbatasan logika relasional tanpa database SQL yang kompleks, 
-      // untuk pemula kita gunakan logika referensi anakDari.
-      let nodeMap = {};
-      Object.values(familyDb).forEach(member => {
-        nodeMap[member.id] = { ...member, anak: [], pasangan: null };
-      });
+        // ==========================================
+        // RENDER SILSILAH KELUARGA (LOGIKA HIERARKI)
+        // ==========================================
+        function renderTree() {
+            const wrapper = document.getElementById('tree-wrapper');
+            wrapper.innerHTML = ""; 
 
-      let rootNodes = [];
-      Object.values(nodeMap).forEach(node => {
-        if (node.status === "Istri" || (node.status === "Suami" && node.id !== "root_01")) {
-          // Cari pasangannya (asumsi pasangan terikat pada ID yang sama secara hirarki)
-          // Dalam skenario ini, kita menempatkan manual pasangan root.
-          if(node.id === "root_02" && nodeMap["root_01"]) {
-            nodeMap["root_01"].pasangan = node;
-          }
-        } else {
-          if (node.anakDari && nodeMap[node.anakDari]) {
-             nodeMap[node.anakDari].anak.push(node);
-          } else {
-             if(node.id === "root_01") rootNodes.push(node);
-          }
+            // Cari Root (Anggota yang tidak punya parentId)
+            let roots = familyData.filter(d => !d.parentId || d.parentId === "");
+            
+            if (roots.length === 0 && familyData.length > 0) {
+                // Jika relasi rusak, anggap orang pertama di excel sebagai root
+                roots = [familyData[0]]; 
+            }
+
+            let ul = document.createElement('ul');
+            roots.forEach(root => {
+                ul.appendChild(buildNode(root));
+            });
+            wrapper.appendChild(ul);
         }
-      });
-      return rootNodes[0]; 
-    }
 
-    function renderFullTree() {
-      const rootNode = buildTreeObject();
-      const treeRootElement = document.getElementById("treeRoot");
-      treeRootElement.innerHTML = "";
-      if (rootNode) {
-        treeRootElement.appendChild(createNodeHTML(rootNode));
-      }
-      filterTree(); // Terapkan pencarian dan filter saat render
-    }
+        function buildNode(person) {
+            let li = document.createElement('li');
+            
+            // Container untuk individu & pasangan
+            let nodeContainer = document.createElement('div');
+            nodeContainer.className = 'node-container';
 
-    function createNodeHTML(node) {
-      const li = document.createElement('li');
-      
-      let html = `<div class="member-card ${node.almarhum ? 'almarhum' : ''}" onclick="openEditModal('${node.id}')" data-nama="${node.nama.toLowerCase()}">`;
-      html += `<img src="${node.foto || 'https://via.placeholder.com/60?text=No+Foto'}" alt="Foto">`;
-      html += `<div class="member-name">${node.nama}</div>`;
-      html += `<div class="member-status">${node.status}</div>`;
-      html += `</div>`;
+            // HTML Individu Utama
+            let isAlmarhum = person.almarhum && person.almarhum.toLowerCase() === 'ya' ? 'almarhum' : '';
+            let foto = person.foto && person.foto.length > 5 ? person.foto : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            
+            nodeContainer.innerHTML += `
+                <div class="person-card ${isAlmarhum}" onclick="viewProfile('${person.id}')" data-name="${person.nama.toLowerCase()}">
+                    <img src="${foto}" alt="Foto">
+                    <h6>${person.nama}</h6>
+                    <p>Gen: ${person.generasi || '-'}</p>
+                </div>
+            `;
 
-      if (node.pasangan) {
-        html += `<div class="member-card ${node.pasangan.almarhum ? 'almarhum' : ''}" onclick="openEditModal('${node.pasangan.id}')" style="margin-left:10px;" data-nama="${node.pasangan.nama.toLowerCase()}">`;
-        html += `<img src="${node.pasangan.foto || 'https://via.placeholder.com/60?text=No+Foto'}" alt="Foto">`;
-        html += `<div class="member-name">${node.pasangan.nama}</div>`;
-        html += `<div class="member-status">${node.pasangan.status}</div>`;
-        html += `</div>`;
-      }
+            // Cari Pasangan (jika ada yang set pasanganId ke ID orang ini)
+            let pasangan = familyData.find(d => d.pasanganId === person.id || d.id === person.pasanganId);
+            // Pastikan tidak merender ganda jika dipanggil dari pasangannya
+            if (pasangan && person.pasanganId !== pasangan.id) { 
+                let pasAlmarhum = pasangan.almarhum && pasangan.almarhum.toLowerCase() === 'ya' ? 'almarhum' : '';
+                let pasFoto = pasangan.foto && pasangan.foto.length > 5 ? pasangan.foto : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                nodeContainer.innerHTML += `
+                    <div class="spouse-line"></div>
+                    <div class="person-card ${pasAlmarhum}" onclick="viewProfile('${pasangan.id}')" data-name="${pasangan.nama.toLowerCase()}">
+                        <img src="${pasFoto}" alt="Foto">
+                        <h6>${pasangan.nama}</h6>
+                        <p>Pasangan</p>
+                    </div>
+                `;
+            }
+            
+            li.appendChild(nodeContainer);
 
-      if (node.anak && node.anak.length > 0) {
-        html += `<ul>`;
-        // Penutupan ul tidak bisa dengan string langsung jika kita merekursif DOM element
-        li.innerHTML = html;
-        const ul = document.createElement('ul');
-        node.anak.forEach(child => {
-          ul.appendChild(createNodeHTML(child));
-        });
-        li.appendChild(ul);
-      } else {
-        li.innerHTML = html;
-      }
-      return li;
-    }
-
-    // ----------------------------------------------------
-    // FUNGSI PENCARIAN & FILTER
-    // ----------------------------------------------------
-    function setFilter(type) {
-      currentFilter = type;
-      filterTree();
-    }
-
-    function filterTree() {
-      const keyword = document.getElementById("searchInput").value.toLowerCase();
-      const cards = document.querySelectorAll('.member-card');
-      
-      cards.forEach(card => {
-        const nama = card.getAttribute('data-nama');
-        const isAlmarhum = card.classList.contains('almarhum');
-        
-        let matchKeyword = nama.includes(keyword);
-        let matchFilter = true;
-        
-        if (currentFilter === 'hidup' && isAlmarhum) matchFilter = false;
-        if (currentFilter === 'almarhum' && !isAlmarhum) matchFilter = false;
-        
-        if (matchKeyword && matchFilter) {
-          card.style.display = "inline-block";
-        } else {
-          card.style.display = "none";
+            // Cari Anak
+            let children = familyData.filter(d => d.parentId === person.id);
+            if (children.length > 0) {
+                let ul = document.createElement('ul');
+                children.forEach(child => {
+                    ul.appendChild(buildNode(child));
+                });
+                li.appendChild(ul);
+            }
+            return li;
         }
-      });
-    }
 
-    // ----------------------------------------------------
-    // FUNGSI MODAL & KOMPRESI GAMBAR (CANVAS)
-    // ----------------------------------------------------
-    function openEditModal(id) {
-      const member = familyDb[id];
-      if (!member) return;
-
-      document.getElementById('editId').value = member.id;
-      document.getElementById('editNama').value = member.nama;
-      document.getElementById('editTanggalLahir').value = member.tanggalLahir;
-      document.getElementById('editGenerasi').value = member.generasi;
-      document.getElementById('editStatus').value = member.status;
-      document.getElementById('editAlmarhum').checked = member.almarhum;
-      document.getElementById('editKeterangan').value = member.keterangan;
-      document.getElementById('editAnakDari').value = member.anakDari;
-      
-      document.getElementById('editFotoFile').value = ""; // Reset input file
-      
-      const preview = document.getElementById('previewFoto');
-      if(member.foto) {
-        preview.src = member.foto;
-        preview.style.display = "block";
-        document.getElementById('editFotoBase64').value = member.foto;
-      } else {
-        preview.style.display = "none";
-        document.getElementById('editFotoBase64').value = "";
-      }
-
-      document.getElementById('editModal').style.display = "block";
-    }
-
-    function closeEditModal() {
-      document.getElementById('editModal').style.display = "none";
-    }
-
-    // Kompresi foto jadi Base64 agar tidak berat saat disimpan di Sheets
-    function compressAndPreviewImage() {
-      const file = document.getElementById('editFotoFile').files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 300; // Resolusi maksimal
-          const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
-
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-          // Kompresi ke format JPEG (0.7 quality)
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          
-          document.getElementById('previewFoto').src = dataUrl;
-          document.getElementById('previewFoto').style.display = "block";
-          document.getElementById('editFotoBase64').value = dataUrl;
+        // ==========================================
+        // FITUR CARI, PROFIL, DAN FORM CRUD
+        // ==========================================
+        function searchTree() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let cards = document.querySelectorAll(".person-card");
+            cards.forEach(card => {
+                if(card.getAttribute("data-name").includes(input)) {
+                    card.style.border = input ? "3px solid #f1c40f" : "";
+                    card.style.boxShadow = input ? "0 0 15px #f1c40f" : "";
+                } else {
+                    card.style.border = "";
+                    card.style.boxShadow = "";
+                }
+            });
         }
-        img.src = event.target.result;
-      }
-      reader.readAsDataURL(file);
-    }
 
-    async function saveProfile() {
-      const id = document.getElementById('editId').value;
-      
-      familyDb[id].nama = document.getElementById('editNama').value;
-      familyDb[id].tanggalLahir = document.getElementById('editTanggalLahir').value;
-      familyDb[id].generasi = document.getElementById('editGenerasi').value;
-      familyDb[id].status = document.getElementById('editStatus').value;
-      familyDb[id].almarhum = document.getElementById('editAlmarhum').checked;
-      familyDb[id].keterangan = document.getElementById('editKeterangan').value;
-      familyDb[id].foto = document.getElementById('editFotoBase64').value;
+        function viewProfile(id) {
+            let p = familyData.find(d => d.id === id);
+            let foto = p.foto && p.foto.length > 5 ? p.foto : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            let parent = familyData.find(d => d.id === p.parentId);
+            let spouse = familyData.find(d => d.pasanganId === p.id || d.id === p.pasanganId);
 
-      closeEditModal();
-      
-      // Render ulang layar lalu simpan
-      renderFullTree();
-      
-      // Tampilkan indikator menyimpan
-      const loader = document.getElementById("loader");
-      loader.innerHTML = "Menyimpan perubahan ke sistem...";
-      loader.style.display = "block";
-      
-      await saveDataToStorage();
-      
-      loader.style.display = "none";
-      loader.innerHTML = "Memuat data dari Google Sheets...";
-    }
-  </script>
+            document.getElementById('modalTitle').innerText = "Profil Anggota";
+            document.getElementById('modalBody').innerHTML = `
+                <div class="text-center mb-3">
+                    <img src="${foto}" style="width:120px; height:120px; border-radius:50%; object-fit:cover; border:3px solid #2c3e50;">
+                    <h4 class="mt-2">${p.nama}</h4>
+                    <span class="badge bg-${p.almarhum.toLowerCase()==='ya' ? 'danger' : 'success'}">${p.almarhum.toLowerCase()==='ya' ? 'Almarhum/ah' : 'Masih Hidup'}</span>
+                </div>
+                <table class="table table-sm table-bordered">
+                    <tr><th>Generasi</th><td>${p.generasi || '-'}</td></tr>
+                    <tr><th>Lahir</th><td>${p.tanggalLahir || '-'}</td></tr>
+                    <tr><th>Status</th><td>${p.status || '-'}</td></tr>
+                    <tr><th>Anak Dari</th><td>${parent ? parent.nama : '-'}</td></tr>
+                    <tr><th>Pasangan</th><td>${spouse ? spouse.nama : '-'}</td></tr>
+                    <tr><th>Keterangan</th><td>${p.keterangan || '-'}</td></tr>
+                </table>
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-warning" onclick="openModal('edit', '${p.id}')"><i class="fas fa-edit"></i> Edit Data</button>
+                    <button class="btn btn-danger" onclick="deleteData('${p.id}')"><i class="fas fa-trash"></i> Hapus</button>
+                </div>
+            `;
+            mainModal.show();
+        }
+
+        function openModal(action, id = null) {
+            let p = id ? familyData.find(d => d.id === id) : {};
+            let isEdit = action === 'edit';
+            
+            // Generate options untuk dropdown Parent dan Pasangan
+            let options = '<option value="">-- Pilih (Kosongkan jika Root/Tidak ada) --</option>';
+            familyData.forEach(d => {
+                if (d.id !== id) { // Jangan jadikan diri sendiri sebagai parent
+                    options += `<option value="${d.id}" ${p.parentId === d.id || p.pasanganId === d.id ? 'selected' : ''}>${d.nama} (Gen ${d.generasi})</option>`;
+                }
+            });
+
+            document.getElementById('modalTitle').innerText = isEdit ? "Edit Anggota" : "Tambah Anggota";
+            document.getElementById('modalBody').innerHTML = `
+                <form id="familyForm" onsubmit="saveData(event, '${action}', '${id || ''}')">
+                    <div class="mb-2">
+                        <label>Nama Lengkap</label>
+                        <input type="text" id="formNama" class="form-control" required value="${p.nama || ''}">
+                    </div>
+                    <div class="mb-2">
+                        <label>Foto (Kosongkan jika tidak diganti)</label>
+                        <input type="file" id="formFoto" class="form-control" accept="image/*">
+                        ${isEdit ? `<input type="hidden" id="oldFoto" value="${p.foto || ''}">` : ''}
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label>Generasi Ke-</label>
+                            <input type="number" id="formGenerasi" class="form-control" value="${p.generasi || ''}">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label>Tanggal Lahir</label>
+                            <input type="text" id="formLahir" class="form-control" placeholder="DD/MM/YYYY" value="${p.tanggalLahir || ''}">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label>Anak Dari (Parent)</label>
+                        <select id="formParent" class="form-select">${options}</select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Pasangan</label>
+                        <select id="formPasangan" class="form-select">${options.replace(p.parentId, '').replace('selected', '')}</select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label>Status Pernikahan</label>
+                            <select id="formStatus" class="form-select">
+                                <option value="Belum Menikah" ${p.status === 'Belum Menikah' ? 'selected' : ''}>Belum Menikah</option>
+                                <option value="Menikah" ${p.status === 'Menikah' ? 'selected' : ''}>Menikah</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label>Almarhum?</label>
+                            <select id="formAlmarhum" class="form-select">
+                                <option value="Tidak" ${p.almarhum === 'Tidak' ? 'selected' : ''}>Tidak</option>
+                                <option value="Ya" ${p.almarhum === 'Ya' ? 'selected' : ''}>Ya</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Keterangan</label>
+                        <textarea id="formKet" class="form-control">${p.keterangan || ''}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" id="btnSimpan"><i class="fas fa-save"></i> SIMPAN</button>
+                </form>
+            `;
+            if(!isEdit) mainModal.show(); // Jika tambah, panggil show (karena edit dipanggil dari viewProfile)
+        }
+
+        // ==========================================
+        // KOMPRESI GAMBAR & SIMPAN DATA TO APPS SCRIPT
+        // ==========================================
+        async function saveData(event, action, id) {
+            event.preventDefault();
+            document.getElementById("btnSimpan").innerText = "Menyimpan...";
+            document.getElementById("btnSimpan").disabled = true;
+
+            let fileInput = document.getElementById("formFoto");
+            let base64Foto = null;
+
+            // Logika kompresi foto sebelum upload
+            if (fileInput.files.length > 0) {
+                base64Foto = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 600; // Kompres maksimal lebar 600px
+                            const scaleSize = MAX_WIDTH / img.width;
+                            canvas.width = MAX_WIDTH;
+                            canvas.height = img.height * scaleSize;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.6)); // Kualitas 60%
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                });
+            }
+
+            let payload = {
+                action: action,
+                fotoBase64: base64Foto,
+                data: {
+                    id: id,
+                    nama: document.getElementById("formNama").value,
+                    parentId: document.getElementById("formParent").value,
+                    pasanganId: document.getElementById("formPasangan").value,
+                    generasi: document.getElementById("formGenerasi").value,
+                    status: document.getElementById("formStatus").value,
+                    almarhum: document.getElementById("formAlmarhum").value,
+                    tanggalLahir: document.getElementById("formLahir").value,
+                    keterangan: document.getElementById("formKet").value,
+                    foto: action === 'edit' ? document.getElementById("oldFoto").value : ""
+                }
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    mainModal.hide();
+                    Swal.fire('Berhasil!', 'Data tersimpan.', 'success').then(() => fetchData());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                    document.getElementById("btnSimpan").innerText = "SIMPAN";
+                    document.getElementById("btnSimpan").disabled = false;
+                }
+            })
+            .catch(err => Swal.fire('Error', 'Gagal menghubungi server.', 'error'));
+        }
+
+        function deleteData(id) {
+            Swal.fire({
+                title: 'Hapus anggota ini?',
+                text: "Data yang dihapus tidak bisa dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    mainModal.hide();
+                    document.getElementById("loader").style.display = "flex";
+                    fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'delete', data: { id: id } })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.status === 'success') fetchData();
+                    });
+                }
+            });
+        }
+    </script>
 </body>
 </html>

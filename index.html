@@ -289,73 +289,150 @@ function buildNode(person, visited = new Set()) {
             mainModal.show();
         }
 
-        function openModal(action, id = null) {
-            let p = id ? familyData.find(d => d.id === id) : {};
-            let isEdit = action === 'edit';
-            
-            // Generate options untuk dropdown Parent dan Pasangan
-            let options = '<option value="">-- Pilih (Kosongkan jika Root/Tidak ada) --</option>';
-            familyData.forEach(d => {
-                if (d.id !== id) { // Jangan jadikan diri sendiri sebagai parent
-                    options += `<option value="${d.id}" ${p.parentId === d.id || p.pasanganId === d.id ? 'selected' : ''}>${d.nama} (Gen ${d.generasi})</option>`;
-                }
-            });
+        // ==========================================
+// BUILD NODE CERDAS (Bisa Cocokkan ID & NAMA)
+// ==========================================
+function buildNode(person, visited = new Set()) {
+    let li = document.createElement('li');
+    
+    if (!person || !person.id || visited.has(person.id)) {
+        return li;
+    }
+    visited.add(person.id);
 
-            document.getElementById('modalTitle').innerText = isEdit ? "Edit Anggota" : "Tambah Anggota";
-            document.getElementById('modalBody').innerHTML = `
-                <form id="familyForm" onsubmit="saveData(event, '${action}', '${id || ''}')">
-                    <div class="mb-2">
-                        <label>Nama Lengkap</label>
-                        <input type="text" id="formNama" class="form-control" required value="${p.nama || ''}">
-                    </div>
-                    <div class="mb-2">
-                        <label>Foto (Kosongkan jika tidak diganti)</label>
-                        <input type="file" id="formFoto" class="form-control" accept="image/*">
-                        ${isEdit ? `<input type="hidden" id="oldFoto" value="${p.foto || ''}">` : ''}
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-2">
-                            <label>Generasi Ke-</label>
-                            <input type="number" id="formGenerasi" class="form-control" value="${p.generasi || ''}">
-                        </div>
-                        <div class="col-6 mb-2">
-                            <label>Tanggal Lahir</label>
-                            <input type="text" id="formLahir" class="form-control" placeholder="DD/MM/YYYY" value="${p.tanggalLahir || ''}">
-                        </div>
-                    </div>
-                    <div class="mb-2">
-                        <label>Anak Dari (Parent)</label>
-                        <select id="formParent" class="form-select">${options}</select>
-                    </div>
-                    <div class="mb-2">
-                        <label>Pasangan</label>
-                        <select id="formPasangan" class="form-select">${options.replace(p.parentId, '').replace('selected', '')}</select>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-2">
-                            <label>Status Pernikahan</label>
-                            <select id="formStatus" class="form-select">
-                                <option value="Belum Menikah" ${p.status === 'Belum Menikah' ? 'selected' : ''}>Belum Menikah</option>
-                                <option value="Menikah" ${p.status === 'Menikah' ? 'selected' : ''}>Menikah</option>
-                            </select>
-                        </div>
-                        <div class="col-6 mb-2">
-                            <label>Almarhum?</label>
-                            <select id="formAlmarhum" class="form-select">
-                                <option value="Tidak" ${p.almarhum === 'Tidak' ? 'selected' : ''}>Tidak</option>
-                                <option value="Ya" ${p.almarhum === 'Ya' ? 'selected' : ''}>Ya</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Keterangan</label>
-                        <textarea id="formKet" class="form-control">${p.keterangan || ''}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100" id="btnSimpan"><i class="fas fa-save"></i> SIMPAN</button>
-                </form>
-            `;
-            if(!isEdit) mainModal.show(); // Jika tambah, panggil show (karena edit dipanggil dari viewProfile)
+    let nodeContainer = document.createElement('div');
+    nodeContainer.className = 'node-container';
+
+    let isAlmarhum = person.almarhum && person.almarhum.toString().toLowerCase() === 'ya' ? 'almarhum' : '';
+    let foto = formatFotoUrl(person.foto);
+    
+    nodeContainer.innerHTML += `
+        <div class="person-card ${isAlmarhum}" onclick="viewProfile('${person.id}')" data-name="${(person.nama || '').toLowerCase()}">
+            <img src="${foto}" alt="Foto" referrerpolicy="no-referrer" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+            <h6>${person.nama || 'Tanpa Nama'}</h6>
+            <p>Gen: ${person.generasi || '-'}</p>
+        </div>
+    `;
+
+    // Cari Pasangan (Bisa pencocokan ID maupun Nama)
+    let pasangan = familyData.find(d => {
+        if (d.id === person.id) return false;
+        let isP1 = (d.pasanganId && (d.pasanganId === person.id || (person.nama && d.pasanganId.toLowerCase() === person.nama.toLowerCase())));
+        let isP2 = (person.pasanganId && (person.pasanganId === d.id || (d.nama && person.pasanganId.toLowerCase() === d.nama.toLowerCase())));
+        return isP1 || isP2;
+    });
+
+    if (pasangan) { 
+        let pasAlmarhum = pasangan.almarhum && pasangan.almarhum.toString().toLowerCase() === 'ya' ? 'almarhum' : '';
+        let pasFoto = formatFotoUrl(pasangan.foto);
+        nodeContainer.innerHTML += `
+            <div class="spouse-line"></div>
+            <div class="person-card ${pasAlmarhum}" onclick="viewProfile('${pasangan.id}')" data-name="${(pasangan.nama || '').toLowerCase()}">
+                <img src="${pasFoto}" alt="Foto" referrerpolicy="no-referrer" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                <h6>${pasangan.nama || 'Tanpa Nama'}</h6>
+                <p>Pasangan</p>
+            </div>
+        `;
+    }
+    
+    li.appendChild(nodeContainer);
+
+    // Cari Anak (Pencarian Cerdas: Cocokkan ID ATAU Nama Orang Tua)
+    let children = familyData.filter(d => {
+        if (!d.parentId || d.id === person.id) return false;
+        let pId = d.parentId.toString().trim().toLowerCase();
+        let myId = person.id.toString().trim().toLowerCase();
+        let myName = (person.nama || '').toString().trim().toLowerCase();
+        
+        return pId === myId || (myName !== "" && pId === myName);
+    });
+
+    if (children.length > 0) {
+        let ul = document.createElement('ul');
+        children.forEach(child => {
+            ul.appendChild(buildNode(child, new Set(visited)));
+        });
+        li.appendChild(ul);
+    }
+    return li;
+}
+
+// ==========================================
+// FORM EDIT & TAMBAH ANGGOTA CERDAS
+// ==========================================
+function openModal(action, id = null) {
+    let p = id ? familyData.find(d => d.id === id) : {};
+    let isEdit = action === 'edit';
+    
+    let parentOptions = '<option value="">-- Tidak Ada / Root (Generasi 1) --</option>';
+    let pasanganOptions = '<option value="">-- Tidak Ada Pasangan --</option>';
+
+    familyData.forEach(d => {
+        if (d.id !== id) {
+            // Deteksi otomatis jika parent/pasangan masih berupa Nama atau ID
+            let isParent = p.parentId && (p.parentId.toString() === d.id.toString() || (d.nama && p.parentId.toString().trim().toLowerCase() === d.nama.trim().toLowerCase()));
+            let isPasangan = p.pasanganId && (p.pasanganId.toString() === d.id.toString() || (d.nama && p.pasanganId.toString().trim().toLowerCase() === d.nama.trim().toLowerCase()));
+
+            parentOptions += `<option value="${d.id}" ${isParent ? 'selected' : ''}>${d.nama} (Gen ${d.generasi || '-'})</option>`;
+            pasanganOptions += `<option value="${d.id}" ${isPasangan ? 'selected' : ''}>${d.nama} (Gen ${d.generasi || '-'})</option>`;
         }
+    });
+
+    document.getElementById('modalTitle').innerText = isEdit ? "Edit Anggota" : "Tambah Anggota";
+    document.getElementById('modalBody').innerHTML = `
+        <form id="familyForm" onsubmit="saveData(event, '${action}', '${id || ''}')">
+            <div class="mb-2">
+                <label class="form-label fw-bold">Nama Lengkap</label>
+                <input type="text" id="formNama" class="form-control" required value="${p.nama || ''}">
+            </div>
+            <div class="mb-2">
+                <label class="form-label fw-bold">Foto (Kosongkan jika tidak diganti)</label>
+                <input type="file" id="formFoto" class="form-control" accept="image/*">
+                ${isEdit ? `<input type="hidden" id="oldFoto" value="${p.foto || ''}">` : ''}
+            </div>
+            <div class="row">
+                <div class="col-6 mb-2">
+                    <label class="form-label fw-bold">Generasi Ke-</label>
+                    <input type="number" id="formGenerasi" class="form-control" value="${p.generasi || ''}">
+                </div>
+                <div class="col-6 mb-2">
+                    <label class="form-label fw-bold">Tanggal Lahir</label>
+                    <input type="text" id="formLahir" class="form-control" placeholder="DD/MM/YYYY" value="${p.tanggalLahir || ''}">
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label fw-bold">Anak Dari (Orang Tua)</label>
+                <select id="formParent" class="form-select">${parentOptions}</select>
+            </div>
+            <div class="mb-2">
+                <label class="form-label fw-bold">Pasangan</label>
+                <select id="formPasangan" class="form-select">${pasanganOptions}</select>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-2">
+                    <label class="form-label fw-bold">Status Pernikahan</label>
+                    <select id="formStatus" class="form-select">
+                        <option value="Belum Menikah" ${p.status === 'Belum Menikah' ? 'selected' : ''}>Belum Menikah</option>
+                        <option value="Menikah" ${p.status === 'Menikah' ? 'selected' : ''}>Menikah</option>
+                    </select>
+                </div>
+                <div class="col-6 mb-2">
+                    <label class="form-label fw-bold">Almarhum/ah?</label>
+                    <select id="formAlmarhum" class="form-select">
+                        <option value="Tidak" ${p.almarhum === 'Tidak' ? 'selected' : ''}>Tidak</option>
+                        <option value="Ya" ${p.almarhum === 'Ya' ? 'selected' : ''}>Ya</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Keterangan</label>
+                <textarea id="formKet" class="form-control">${p.keterangan || ''}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="btnSimpan"><i class="fas fa-save"></i> SIMPAN</button>
+        </form>
+    `;
+    if(!isEdit) mainModal.show();
+}
 
         // ==========================================
         // KOMPRESI GAMBAR & SIMPAN DATA TO APPS SCRIPT

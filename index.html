@@ -128,94 +128,121 @@
         function zoomOut() { panzoomInstance.zoomOut(); }
         function resetZoom() { panzoomInstance.reset(); }
 
-        async function fetchData() {
-            document.getElementById("loader").style.display = "flex";
-            try {
-                const response = await fetch(SCRIPT_URL + "?action=get");
-                const res = await response.json();
-                if (res.status === "success") {
-                    familyData = res.data;
-                    renderTree();
-                } else {
-                    Swal.fire('Error', 'Gagal mengambil data dari Spreadsheet', 'error');
-                }
-            } catch (err) {
-                Swal.fire('Error', 'Gagal terhubung ke server Google. Pastikan URL Apps Script benar.', 'error');
-            }
-            document.getElementById("loader").style.display = "none";
-        }
-
         // ==========================================
-        // RENDER SILSILAH KELUARGA (LOGIKA HIERARKI)
-        // ==========================================
-        function renderTree() {
-            const wrapper = document.getElementById('tree-wrapper');
-            wrapper.innerHTML = ""; 
+// FETCH DATA DENGAN PENGAMAN LOADER
+// ==========================================
+async function fetchData() {
+    const loader = document.getElementById("loader");
+    loader.style.display = "flex";
 
-            // Cari Root (Anggota yang tidak punya parentId)
-            let roots = familyData.filter(d => !d.parentId || d.parentId === "");
-            
-            if (roots.length === 0 && familyData.length > 0) {
-                // Jika relasi rusak, anggap orang pertama di excel sebagai root
-                roots = [familyData[0]]; 
-            }
-
-            let ul = document.createElement('ul');
-            roots.forEach(root => {
-                ul.appendChild(buildNode(root));
-            });
-            wrapper.appendChild(ul);
+    try {
+        if (!SCRIPT_URL || SCRIPT_URL.includes("URL_WEB_APP_APPS_SCRIPT_ANDA_DI_SINI")) {
+            throw new Error("URL Apps Script belum dimasukkan ke dalam kode index.html!");
         }
 
-        function buildNode(person) {
-            let foto = formatFotoUrl(person.foto);
-            
-            // Container untuk individu & pasangan
-            let nodeContainer = document.createElement('div');
-            nodeContainer.className = 'node-container';
-
-            // HTML Individu Utama
-            let isAlmarhum = person.almarhum && person.almarhum.toLowerCase() === 'ya' ? 'almarhum' : '';
-            let foto = person.foto && person.foto.length > 5 ? person.foto : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-            
-            nodeContainer.innerHTML += `
-                <div class="person-card ${isAlmarhum}" onclick="viewProfile('${person.id}')" data-name="${person.nama.toLowerCase()}">
-                    <img src="${foto}" alt="Foto">
-                    <h6>${person.nama}</h6>
-                    <p>Gen: ${person.generasi || '-'}</p>
-                </div>
-            `;
-
-            // Cari Pasangan (jika ada yang set pasanganId ke ID orang ini)
-            let pasangan = familyData.find(d => d.pasanganId === person.id || d.id === person.pasanganId);
-            // Pastikan tidak merender ganda jika dipanggil dari pasangannya
-            if (pasangan && person.pasanganId !== pasangan.id) { 
-                let pasAlmarhum = pasangan.almarhum && pasangan.almarhum.toLowerCase() === 'ya' ? 'almarhum' : '';
-                let pasFoto = pasangan.foto && pasangan.foto.length > 5 ? pasangan.foto : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                nodeContainer.innerHTML += `
-                    <div class="spouse-line"></div>
-                    <div class="person-card ${pasAlmarhum}" onclick="viewProfile('${pasangan.id}')" data-name="${pasangan.nama.toLowerCase()}">
-                        <img src="${pasFoto}" alt="Foto">
-                        <h6>${pasangan.nama}</h6>
-                        <p>Pasangan</p>
-                    </div>
-                `;
-            }
-            
-            li.appendChild(nodeContainer);
-
-            // Cari Anak
-            let children = familyData.filter(d => d.parentId === person.id);
-            if (children.length > 0) {
-                let ul = document.createElement('ul');
-                children.forEach(child => {
-                    ul.appendChild(buildNode(child));
-                });
-                li.appendChild(ul);
-            }
-            return li;
+        const response = await fetch(SCRIPT_URL + "?action=get");
+        const rawText = await response.text();
+        
+        let res;
+        try {
+            res = JSON.parse(rawText);
+        } catch (jsonErr) {
+            throw new Error("Apps Script mengembalikan halaman Login Google. Pastikan akses deployment sudah disetel ke 'Anyone' (Siapa saja).");
         }
 
+        if (res.status === "success") {
+            familyData = res.data;
+            renderTree();
+        } else {
+            Swal.fire('Error Database', res.message || 'Gagal mengambil data dari Spreadsheet', 'error');
+        }
+    } catch (err) {
+        Swal.fire('Gagal Memuat Silsilah', err.message, 'error');
+    } finally {
+        // PERINTAH INI DIJAMIN AKAN MENUTUP LOADING MUTAR
+        loader.style.display = "none";
+    }
+}
+
+// ==========================================
+// RENDER TREE DENGAN PENGAMAN LOOPING
+// ==========================================
+function renderTree() {
+    const wrapper = document.getElementById('tree-wrapper');
+    wrapper.innerHTML = ""; 
+
+    if (!familyData || familyData.length === 0) {
+        wrapper.innerHTML = "<p class='p-4 text-muted'>Data keluarga masih kosong di Spreadsheet.</p>";
+        return;
+    }
+
+    // Cari Root (yang tidak punya parentId)
+    let roots = familyData.filter(d => !d.parentId || d.parentId === "" || d.parentId === "0");
+    
+    if (roots.length === 0) {
+        roots = [familyData[0]]; // fallback jika relasi root belum diisi
+    }
+
+    let ul = document.createElement('ul');
+    let visited = new Set(); // Mencegah looping melingkar tanpa henti
+
+    roots.forEach(root => {
+        ul.appendChild(buildNode(root, visited));
+    });
+    wrapper.appendChild(ul);
+}
+
+function buildNode(person, visited = new Set()) {
+    let li = document.createElement('li');
+    
+    // Cegah looping jika ada relasi anak-orang tua yang terbalik/melingkar
+    if (visited.has(person.id)) {
+        return li;
+    }
+    visited.add(person.id);
+
+    let nodeContainer = document.createElement('div');
+    nodeContainer.className = 'node-container';
+
+    let isAlmarhum = person.almarhum && person.almarhum.toLowerCase() === 'ya' ? 'almarhum' : '';
+    let foto = formatFotoUrl(person.foto);
+    
+    nodeContainer.innerHTML += `
+        <div class="person-card ${isAlmarhum}" onclick="viewProfile('${person.id}')" data-name="${(person.nama || '').toLowerCase()}">
+            <img src="${foto}" alt="Foto" referrerpolicy="no-referrer" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+            <h6>${person.nama || 'Tanpa Nama'}</h6>
+            <p>Gen: ${person.generasi || '-'}</p>
+        </div>
+    `;
+
+    // Cari Pasangan
+    let pasangan = familyData.find(d => (d.pasanganId && d.pasanganId === person.id) || (person.pasanganId && d.id === person.pasanganId));
+    if (pasangan && person.pasanganId !== pasangan.id) { 
+        let pasAlmarhum = pasangan.almarhum && pasangan.almarhum.toLowerCase() === 'ya' ? 'almarhum' : '';
+        let pasFoto = formatFotoUrl(pasangan.foto);
+        nodeContainer.innerHTML += `
+            <div class="spouse-line"></div>
+            <div class="person-card ${pasAlmarhum}" onclick="viewProfile('${pasangan.id}')" data-name="${(pasangan.nama || '').toLowerCase()}">
+                <img src="${pasFoto}" alt="Foto" referrerpolicy="no-referrer" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                <h6>${pasangan.nama || 'Tanpa Nama'}</h6>
+                <p>Pasangan</p>
+            </div>
+        `;
+    }
+    
+    li.appendChild(nodeContainer);
+
+    // Cari Anak
+    let children = familyData.filter(d => d.parentId === person.id);
+    if (children.length > 0) {
+        let ul = document.createElement('ul');
+        children.forEach(child => {
+            ul.appendChild(buildNode(child, new Set(visited)));
+        });
+        li.appendChild(ul);
+    }
+    return li;
+}
         // ==========================================
         // FITUR CARI, PROFIL, DAN FORM CRUD
         // ==========================================
